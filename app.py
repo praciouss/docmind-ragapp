@@ -1,6 +1,6 @@
 import os
 import uuid
-import fitz  # PyMuPDF
+import fitz  #PyMuPDF
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -29,7 +29,7 @@ CHUNK_OVERLAP = 50
 
 
 def chunk_text(text: str) -> list[str]:
-    """Split text into overlapping chunks."""
+    #Split text into overlapping chunks.
     words = text.split()
     chunks = []
     i = 0
@@ -41,7 +41,7 @@ def chunk_text(text: str) -> list[str]:
 
 
 def extract_text_from_pdf(pdf_bytes: bytes) -> str:
-    """Extract all text from a PDF."""
+    #Extract all text from a PDF.
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
     text = ""
     for page in doc:
@@ -57,7 +57,7 @@ def index():
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    """Upload a PDF, chunk it, embed, and store in ChromaDB."""
+    #Upload a PDF, chunk it, embed, and store in ChromaDB.
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -79,7 +79,7 @@ def upload():
         if not chunks:
             return jsonify({"error": "Document appears to be empty"}), 400
 
-        # Create a fresh collection for this session
+        #Create a fresh collection for this session
         collection = chroma_client.create_collection(name=session_id)
 
         embeddings = embedder.encode(chunks).tolist()
@@ -105,7 +105,7 @@ def upload():
 
 @app.route("/query", methods=["POST"])
 def query():
-    """Query the uploaded document."""
+    #Query the uploaded document.
     data = request.get_json()
     session_id = data.get("session_id")
     question = data.get("question", "").strip()
@@ -119,7 +119,7 @@ def query():
     try:
         collection = sessions[session_id]
 
-        # Embed the question and retrieve top 5 relevant chunks
+        #Embed the question and retrieve top 5 relevant chunks
         q_embedding = embedder.encode([question]).tolist()
         results = collection.query(
             query_embeddings=q_embedding,
@@ -129,7 +129,7 @@ def query():
         context_chunks = results["documents"][0]
         context = "\n\n---\n\n".join(context_chunks)
 
-        # Ask Groq/LLaMA with the retrieved context
+        #Ask Groq/LLaMA with the retrieved context
         system_prompt = (
             "You are a helpful assistant that answers questions strictly based on the provided document context. "
             "If the answer is not in the context, say so clearly. Do not make things up. "
