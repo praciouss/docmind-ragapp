@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
-  /* ── DARK — soft navy + amber gold (matches portfolio) ── */
   :root {
     --bg:         #16213e;
     --bg2:        #1a2647;
@@ -54,7 +53,7 @@
     pointer-events: none; z-index: 0;
   }
 
-  /* ── HEADER ── */
+  /* Header */
   header {
     position: relative; z-index: 10;
     padding: 1.1rem 2rem;
@@ -101,7 +100,7 @@
     transition: all 0.3s;
   }
 
-  /* ── MAIN ── */
+  /* Main */
   main {
     flex: 1; position: relative; z-index: 1;
     display: flex; flex-direction: column;
@@ -110,7 +109,7 @@
     gap: 1.5rem;
   }
 
-  /* ── UPLOAD ── */
+  /* Upload */
   .upload-zone {
     border: 2px dashed var(--border2);
     border-radius: var(--radius);
@@ -141,7 +140,7 @@
   }
   #file-input { display: none; }
 
-  /* ── STATUS ── */
+  /* Status */
   .status-bar {
     padding: 0.9rem 1.2rem;
     border-radius: var(--radius); border: 1px solid;
@@ -162,7 +161,7 @@
     animation: spin 0.7s linear infinite;
   }
 
-  /* ── DOC BAR ── */
+  /* Doc Bar */
   .doc-bar {
     display: none;
     align-items: center; justify-content: space-between;
@@ -188,7 +187,7 @@
   }
   .reset-btn:hover { border-color: #e05c3a; color: #e05c3a; }
 
-  /* ── CHAT ── */
+  /* Chat */
   .chat-wrap { display: none; flex-direction: column; gap: 1.25rem; }
   .chat-wrap.visible { display: flex; }
 
@@ -230,7 +229,7 @@
   }
   .msg-label.dim { color: var(--muted); }
 
-  /* ── SUGGESTIONS ── */
+  /* Suggestions */
   .suggestions { display: flex; flex-wrap: wrap; gap: 0.55rem; }
   .suggestion {
     font-family: var(--mono); font-size: 0.73rem; color: var(--text2);
@@ -239,7 +238,7 @@
   }
   .suggestion:hover { border-color: var(--accent2); color: var(--accent2); background: var(--accent2-dim); }
 
-  /* ── INPUT ── */
+  /* Input */
   .input-wrap { display: flex; gap: 0.75rem; align-items: flex-end; }
   .question-input {
     flex: 1; background: var(--surface); border: 1px solid var(--border);
@@ -262,7 +261,7 @@
   .send-btn:hover { opacity: 0.85; transform: translateY(-1px); }
   .send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
 
-  /* ── FOOTER ── */
+  /* Footer */
   footer {
     position: relative; z-index: 1;
     padding: 1rem 2rem; border-top: 1px solid var(--border);
