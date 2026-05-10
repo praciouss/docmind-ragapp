@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DocMind — RAG Document Q&A</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  /* ── DARK — soft navy + amber gold (matches portfolio) ── */
+  :root {
+    --bg:         #16213e;
+    --bg2:        #1a2647;
+    --surface:    #1e2d52;
+    --surface2:   #243460;
+    --border:     #2e4070;
+    --border2:    #3a5090;
+    --accent:     #e8961f;
+    --accent-dim: rgba(232,150,31,0.12);
+    --accent2:    #e8845a;
+    --accent2-dim:rgba(232,132,90,0.10);
+    --accent3:    #e05c3a;
+    --text:       #eef2ff;
+    --text2:      #b8c8e8;
+    --muted:      #6a82b0;
+    --header-bg:  rgba(22,33,62,0.88);
+    --glow1:      rgba(232,150,31,0.05);
+    --glow2:      rgba(232,132,90,0.04);
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --radius: 10px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--glow1) 1px, transparent 1px),
+      linear-gradient(90deg, var(--glow1) 1px, transparent 1px);
+    background-size: 52px 52px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 10;
+    padding: 1.1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--header-bg);
+    backdrop-filter: blur(16px);
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .header-left { display: flex; align-items: center; gap: 0.9rem; }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent-dim);
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: all 0.3s;
+  }
+
+  .logo-text {
+    font-family: var(--mono);
+    font-size: 1rem; font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+    transition: color 0.3s;
+  }
+  .logo-sub {
+    font-family: var(--mono);
+    font-size: 0.68rem; color: var(--muted); margin-top: 1px;
+    transition: color 0.3s;
+  }
+
+  .header-right { display: flex; align-items: center; gap: 0.75rem; }
+
+  .header-badge {
+    font-family: var(--mono); font-size: 0.65rem;
+    background: var(--accent-dim); color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.28rem 0.75rem; border-radius: 20px;
+    letter-spacing: 0.07em;
+    transition: all 0.3s;
+  }
+
+  /* ── MAIN ── */
+  main {
+    flex: 1; position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    max-width: 820px; width: 100%;
+    margin: 0 auto; padding: 2.5rem 1.5rem;
+    gap: 1.5rem;
+  }
+
+  /* ── UPLOAD ── */
+  .upload-zone {
+    border: 2px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 3.5rem 2rem;
+    text-align: center; cursor: pointer;
+    background: var(--surface);
+    transition: all 0.25s;
+    position: relative; overflow: hidden;
+  }
+  .upload-zone::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, var(--accent-dim), transparent 70%);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--surface2); }
+  .upload-zone:hover::before, .upload-zone.dragover::before { opacity: 1; }
+
+  .upload-icon { font-size: 2.5rem; margin-bottom: 1.25rem; display: block; }
+  .upload-title { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+  .upload-sub { font-family: var(--mono); font-size: 0.78rem; color: var(--muted); }
+  .upload-hint {
+    margin-top: 1.4rem;
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 0.38rem 1rem; border-radius: 20px;
+  }
+  #file-input { display: none; }
+
+  /* ── STATUS ── */
+  .status-bar {
+    padding: 0.9rem 1.2rem;
+    border-radius: var(--radius); border: 1px solid;
+    font-family: var(--mono); font-size: 0.8rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    transition: all 0.3s;
+  }
+  .status-bar.hidden { display: none; }
+  .status-bar.loading { border-color: var(--border2); color: var(--text2); background: var(--surface); }
+  .status-bar.success { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .status-bar.error   { border-color: rgba(220,80,60,0.4); color: #e05c3a; background: rgba(220,80,60,0.07); }
+
+  .spinner {
+    width: 13px; height: 13px; flex-shrink: 0;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  /* ── DOC BAR ── */
+  .doc-bar {
+    display: none;
+    align-items: center; justify-content: space-between;
+    padding: 0.85rem 1.2rem;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); transition: all 0.3s;
+  }
+  .doc-bar.visible { display: flex; }
+  .doc-info-left { display: flex; align-items: center; gap: 0.75rem; }
+  .doc-icon {
+    width: 32px; height: 32px;
+    background: var(--accent2-dim); border: 1px solid var(--accent2);
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+  }
+  .doc-name { font-weight: 600; font-size: 0.95rem; color: var(--text); }
+  .doc-meta { font-family: var(--mono); font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+  .reset-btn {
+    font-family: var(--mono); font-size: 0.68rem; color: var(--muted);
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    padding: 0.38rem 0.8rem; cursor: pointer; letter-spacing: 0.05em;
+    text-transform: uppercase; transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color: #e05c3a; color: #e05c3a; }
+
+  /* ── CHAT ── */
+  .chat-wrap { display: none; flex-direction: column; gap: 1.25rem; }
+  .chat-wrap.visible { display: flex; }
+
+  .messages {
+    display: flex; flex-direction: column; gap: 1rem;
+    max-height: 440px; overflow-y: auto; padding-right: 0.25rem;
+  }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .message {
+    padding: 1.1rem 1.4rem;
+    border-radius: var(--radius);
+    font-size: 0.96rem; line-height: 1.75;
+    animation: slideUp 0.3s ease;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .message.user {
+    background: var(--surface2); border: 1px solid var(--border);
+    align-self: flex-end; max-width: 85%; color: var(--text);
+  }
+  .message.assistant {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); color: var(--text2);
+  }
+  .message.thinking {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid var(--muted); color: var(--muted); font-style: italic;
+  }
+  .msg-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; }
+  .msg-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 6px var(--accent);
+  }
+  .msg-dot.dim { background: var(--muted); box-shadow: none; }
+  .msg-label {
+    font-family: var(--mono); font-size: 0.67rem;
+    color: var(--accent); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .msg-label.dim { color: var(--muted); }
+
+  /* ── SUGGESTIONS ── */
+  .suggestions { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+  .suggestion {
+    font-family: var(--mono); font-size: 0.73rem; color: var(--text2);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 0.48rem 0.9rem; cursor: pointer; transition: all 0.2s;
+  }
+  .suggestion:hover { border-color: var(--accent2); color: var(--accent2); background: var(--accent2-dim); }
+
+  /* ── INPUT ── */
+  .input-wrap { display: flex; gap: 0.75rem; align-items: flex-end; }
+  .question-input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 0.95rem 1.2rem;
+    color: var(--text); font-family: var(--sans); font-size: 0.97rem; line-height: 1.5;
+    outline: none; transition: border-color 0.2s, background 0.3s;
+    resize: none; min-height: 52px; max-height: 140px;
+  }
+  .question-input:focus { border-color: var(--accent); }
+  .question-input::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 52px; height: 52px; flex-shrink: 0;
+    background: var(--accent); color: #16213e;
+    border: none; border-radius: var(--radius);
+    font-size: 1.3rem; cursor: pointer; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .send-btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    padding: 1rem 2rem; border-top: 1px solid var(--border);
+    text-align: center; font-family: var(--mono);
+    font-size: 0.68rem; color: var(--muted); transition: all 0.3s;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo-icon">📄</div>
+    <div>
+      <div class="logo-text">DocMind</div>
+      <div class="logo-sub">RAG Document Intelligence</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="header-badge">LLaMA 3.3 · Groq</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="upload-zone" id="upload-zone">
+    <span class="upload-icon">⬆️</span>
+    <p class="upload-title">Drop your PDF here</p>
+    <p class="upload-sub">or click anywhere to browse</p>
+    <div class="upload-hint"><span>📋</span> Text-based PDFs only</div>
+    <input type="file" id="file-input" accept=".pdf"/>
+  </div>
+
+  <div class="status-bar hidden" id="status-bar">
+    <div class="spinner" id="spinner"></div>
+    <span id="status-text"></span>
+  </div>
+
+  <div class="doc-bar" id="doc-bar">
+    <div class="doc-info-left">
+      <div class="doc-icon">📄</div>
+      <div>
+        <div class="doc-name" id="doc-name"></div>
+        <div class="doc-meta" id="doc-meta"></div>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="resetSession()">New doc</button>
+  </div>
+
+  <div class="chat-wrap" id="chat-wrap">
+    <div class="messages" id="messages"></div>
+    <div class="suggestions" id="suggestions">
+      <span class="suggestion" onclick="useQ(this)">What is this document about?</span>
+      <span class="suggestion" onclick="useQ(this)">What are the key findings?</span>
+      <span class="suggestion" onclick="useQ(this)">Summarise the main conclusions</span>
+      <span class="suggestion" onclick="useQ(this)">What methodology was used?</span>
+    </div>
+    <div class="input-wrap">
+      <textarea class="question-input" id="q-input" rows="1"
+        placeholder="Ask anything about your document..."></textarea>
+      <button class="send-btn" id="send-btn" onclick="ask()">↑</button>
+    </div>
+  </div>
+
+</main>
+
+<footer>Built by Prachi. · Sentence Transformers + ChromaDB + LLaMA 3.3 70B via Groq</footer>
+
+<script>
+  var sessionId = null;
+  var uploadZone = document.getElementById('upload-zone');
+  var fileInput  = document.getElementById('file-input');
+  var statusBar  = document.getElementById('status-bar');
+  var statusText = document.getElementById('status-text');
+  var spinner    = document.getElementById('spinner');
+  var docBar     = document.getElementById('doc-bar');
+  var chatWrap   = document.getElementById('chat-wrap');
+  var messages   = document.getElementById('messages');
+  var qInput     = document.getElementById('q-input');
+  var sendBtn    = document.getElementById('send-btn');
+
+  uploadZone.addEventListener('click', function() { fileInput.click(); });
+  fileInput.addEventListener('change', function() { if (fileInput.files[0]) upload(fileInput.files[0]); });
+  uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', function() { uploadZone.classList.remove('dragover'); });
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault(); uploadZone.classList.remove('dragover');
+    var f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.pdf')) upload(f);
+  });
+  qInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); }
+  });
+  qInput.addEventListener('input', function() {
+    qInput.style.height = 'auto';
+    qInput.style.height = Math.min(qInput.scrollHeight, 140) + 'px';
+  });
+
+  function showStatus(msg, type) {
+    statusBar.className = 'status-bar ' + type;
+    statusText.textContent = msg;
+    spinner.style.display = type === 'loading' ? 'block' : 'none';
+  }
+  function hideStatus() { statusBar.className = 'status-bar hidden'; }
+
+  async function upload(file) {
+    showStatus('Reading and indexing your document...', 'loading');
+    uploadZone.style.opacity = '0.4'; uploadZone.style.pointerEvents = 'none';
+    var fd = new FormData(); fd.append('file', file);
+    try {
+      var res  = await fetch('/upload', { method: 'POST', body: fd });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      sessionId = data.session_id;
+      document.getElementById('doc-name').textContent = data.filename;
+      document.getElementById('doc-meta').textContent = data.chunks + ' chunks indexed · ready to query';
+      hideStatus();
+      uploadZone.style.display = 'none';
+      docBar.classList.add('visible');
+      chatWrap.classList.add('visible');
+      addMsg('assistant', 'Document indexed — I\'ve read through ' + data.chunks + ' chunks. Ask me anything about it.');
+    } catch(err) {
+      showStatus('Error: ' + err.message, 'error');
+      uploadZone.style.opacity = '1'; uploadZone.style.pointerEvents = 'auto';
+    }
+  }
+
+  async function ask() {
+    var q = qInput.value.trim();
+    if (!q || !sessionId) return;
+    addMsg('user', q);
+    qInput.value = ''; qInput.style.height = 'auto';
+    document.getElementById('suggestions').style.display = 'none';
+    var thinking = addMsg('thinking', 'Searching document and generating answer...');
+    sendBtn.disabled = true;
+    try {
+      var res  = await fetch('/query', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, question: q })
+      });
+      var data = await res.json();
+      thinking.remove();
+      if (!res.ok) throw new Error(data.error);
+      addMsg('assistant', data.answer);
+    } catch(err) {
+      thinking.remove();
+      addMsg('assistant', 'Error: ' + err.message);
+    } finally { sendBtn.disabled = false; }
+  }
+
+  function addMsg(type, text) {
+    var el = document.createElement('div');
+    el.className = 'message ' + type;
+    var isThinking = type === 'thinking';
+    if (type === 'user') {
+      el.textContent = text;
+    } else {
+      el.innerHTML = '<div class="msg-header"><div class="msg-dot' + (isThinking?' dim':'') + '"></div>'
+        + '<span class="msg-label' + (isThinking?' dim':'') + '">' + (isThinking?'Thinking':'DocMind') + '</span></div>'
+        + esc(text);
+    }
+    messages.appendChild(el);
+    messages.scrollTop = messages.scrollHeight;
+    return el;
+  }
+
+  function esc(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+  function useQ(el) { qInput.value = el.textContent; qInput.focus(); }
+  function resetSession() {
+    sessionId = null; messages.innerHTML = '';
+    chatWrap.classList.remove('visible'); docBar.classList.remove('visible');
+    uploadZone.style.display = 'block'; uploadZone.style.opacity = '1';
+    uploadZone.style.pointerEvents = 'auto'; fileInput.value = '';
+    hideStatus(); document.getElementById('suggestions').style.display = 'flex';
+  }
+</script>
+</body>
+</html>
